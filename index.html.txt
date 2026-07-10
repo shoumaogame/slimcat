@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>瘦猫电竞 · 王者荣耀接单平台</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
+    <style>
+        :root {
+            --bg: #f7f5f0; --bg-card: #ffffff; --bg-hover: #faf9f6; --text: #2c2416;
+            --text-secondary: #6b5e4a; --text-muted: #9b8d7a; --gold: #b8942e;
+            --gold-light: #d4b84a; --gold-pale: #f5ecd7; --red: #c0392b; --red-bg: #fdf0ed;
+            --blue: #3b6dad; --blue-bg: #edf4fc; --green: #3a7d5a; --green-bg: #edf6f1;
+            --orange: #c07830; --orange-bg: #fdf4ea; --purple: #7b4fa0; --purple-bg: #f6f0fa;
+            --border: #e8e3d8; --border-light: #f0ece4;
+            --shadow-sm: 0 1px 3px rgba(0,0,0,0.04); --shadow: 0 2px 8px rgba(0,0,0,0.05);
+            --shadow-lg: 0 8px 30px rgba(0,0,0,0.08);
+            --radius-sm: 10px; --radius: 14px; --radius-lg: 20px;
+            --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #1a1814; --bg-card: #242118; --bg-hover: #2a2720; --text: #e8e0d0;
+                --text-secondary: #b0a590; --text-muted: #7a7060; --gold: #c9a940;
+                --gold-light: #dcc060; --gold-pale: #3a3220; --red: #c0392b;
+                --red-bg: #2a1a18; --blue-bg: #1a222a; --green-bg: #1a2a20;
+                --orange-bg: #2a2018; --purple-bg: #221a2a; --border: #2e2a22;
+                --border-light: #252218;
+                --shadow-sm: 0 1px 3px rgba(0,0,0,0.2); --shadow: 0 2px 8px rgba(0,0,0,0.3);
+                --shadow-lg: 0 8px 30px rgba(0,0,0,0.4);
+            }
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        html { font-size:16px; -webkit-tap-highlight-color:transparent; }
+        body { font-family:'Inter','PingFang SC','Microsoft YaHei',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; line-height:1.6; -webkit-font-smoothing:antialiased; }
+        ::-webkit-scrollbar { width:4px; } ::-webkit-scrollbar-track { background:transparent; } ::-webkit-scrollbar-thumb { background:var(--border); border-radius:4px; }
+        .app { max-width:1100px; margin:0 auto; padding:20px 24px 40px; }
+        .nav { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:14px 20px; background:var(--bg-card); border-radius:var(--radius-lg); border:1px solid var(--border); box-shadow:var(--shadow-sm); margin-bottom:20px; flex-wrap:wrap; position:sticky; top:16px; z-index:50; backdrop-filter:blur(12px); }
+        .brand { display:flex; align-items:center; gap:10px; cursor:pointer; user-select:none; }
+        .brand-icon { width:36px; height:36px; background:linear-gradient(135deg, #d4b84a, #b8942e); border-radius:10px; display:flex; align-items:center; justify-content:center; font-size:1.1rem; color:#fff; box-shadow:0 2px 8px rgba(180,140,40,0.25); }
+        .brand-name { font-weight:700; font-size:1.15rem; }
+        .nav-tabs { display:flex; gap:4px; background:var(--bg); border-radius:24px; padding:3px; border:1px solid var(--border-light); }
+        .nav-tab { padding:8px 18px; border-radius:22px; cursor:pointer; font-size:0.82rem; font-weight:500; color:var(--text-secondary); border:none; background:transparent; transition:var(--transition); font-family:inherit; }
+        .nav-tab:hover { color:var(--text); }
+        .nav-tab.active { background:var(--bg-card); color:var(--text); font-weight:600; box-shadow:var(--shadow-sm); border:1px solid var(--border); }
+        .nav-right { display:flex; align-items:center; gap:10px; }
+        .user-btn { display:flex; align-items:center; gap:8px; padding:7px 14px; border-radius:24px; cursor:pointer; background:var(--bg); border:1px solid var(--border); transition:var(--transition); font-size:0.8rem; color:var(--text-secondary); }
+        .user-btn:hover { border-color:var(--gold-light); color:var(--text); }
+        .user-avatar { width:28px; height:28px; border-radius:50%; background:linear-gradient(135deg,#c9a940,#a07820); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.7rem; }
+        .user-avatar.admin-av { background:linear-gradient(135deg,#c0392b,#8b1a1a); }
+        .role-dot { width:7px; height:7px; border-radius:50%; }
+        .role-dot.admin-dot { background:#c0392b; } .role-dot.user-dot { background:#b8942e; }
+        .conn-indicator { display:flex; align-items:center; gap:5px; font-size:0.7rem; color:var(--text-muted); padding:6px 10px; border-radius:16px; background:var(--bg); border:1px solid var(--border-light); }
+        .conn-dot { width:5px; height:5px; border-radius:50%; background:#3a7d5a; animation:connPulse 2.5s infinite; }
+        @keyframes connPulse { 0%,100%{ box-shadow:0 0 0 0 rgba(58,125,90,0.4); } 50%{ box-shadow:0 0 0 8px rgba(58,125,90,0); } }
+        .stats { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:10px; margin-bottom:20px; }
+        .stat-card { background:var(--bg-card); border-radius:var(--radius); padding:16px 18px; border:1px solid var(--border); box-shadow:var(--shadow-sm); text-align:center; transition:var(--transition); }
+        .stat-card:hover { box-shadow:var(--shadow); transform:translateY(-1px); }
+        .stat-label { font-size:0.7rem; color:var(--text-muted); letter-spacing:0.8px; text-transform:uppercase; margin-bottom:6px; }
+        .stat-value { font-size:1.6rem; font-weight:700; }
+        .stat-value.highlight { color:var(--gold); }
+        .filters { display:flex; gap:6px; margin-bottom:16px; flex-wrap:wrap; }
+        .filter-chip { padding:7px 16px; border-radius:20px; cursor:pointer; font-size:0.76rem; font-weight:500; border:1px solid var(--border); background:var(--bg-card); color:var(--text-secondary); transition:var(--transition); font-family:inherit; }
+        .filter-chip:hover { border-color:var(--gold-light); color:var(--text); }
+        .filter-chip.active { background:var(--text); color:var(--bg-card); border-color:var(--text); font-weight:600; }
+        .order-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:12px; }
+        .order-card { background:var(--bg-card); border-radius:var(--radius); padding:18px 20px; border:1px solid var(--border); box-shadow:var(--shadow-sm); transition:var(--transition); cursor:pointer; display:flex; flex-direction:column; gap:10px; }
+        .order-card:hover { box-shadow:var(--shadow-lg); transform:translateY(-2px); }
+        .order-card.flash { animation:cardFlash 0.6s ease; }
+        @keyframes cardFlash { 0%,100%{ box-shadow:var(--shadow-sm); } 30%{ box-shadow:0 0 0 3px rgba(180,140,40,0.2),0 8px 24px rgba(0,0,0,0.1); } }
+        .card-top { display:flex; justify-content:space-between; align-items:center; gap:8px; }
+        .badge-type { padding:4px 10px; border-radius:14px; font-size:0.66rem; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; }
+        .badge-rank { background:var(--blue-bg); color:var(--blue); } .badge-peak { background:var(--red-bg); color:var(--red); }
+        .badge-hero { background:var(--orange-bg); color:var(--orange); } .badge-play { background:var(--green-bg); color:var(--green); }
+        .badge-status { padding:4px 10px; border-radius:14px; font-size:0.66rem; font-weight:600; }
+        .status-pending { background:var(--orange-bg); color:var(--orange); animation:pendingGlow 2.5s infinite; }
+        @keyframes pendingGlow { 0%,100%{ opacity:1; } 50%{ opacity:0.6; } }
+        .status-accepted { background:var(--blue-bg); color:var(--blue); } .status-doing { background:var(--purple-bg); color:var(--purple); } .status-done { background:var(--green-bg); color:var(--green); }
+        .card-title { font-weight:700; font-size:1rem; }
+        .card-meta { display:flex; gap:12px; flex-wrap:wrap; font-size:0.74rem; color:var(--text-secondary); }
+        .card-price { font-size:1.35rem; font-weight:700; color:var(--gold); }
+        .card-bottom { display:flex; justify-content:space-between; align-items:center; padding-top:10px; border-top:1px solid var(--border-light); }
+        .btn { padding:7px 16px; border-radius:18px; border:none; cursor:pointer; font-weight:600; font-size:0.74rem; letter-spacing:0.4px; transition:var(--transition); font-family:inherit; }
+        .btn-primary { background:var(--text); color:var(--bg-card); } .btn-accent { background:var(--gold); color:#fff; }
+        .btn-outline { background:transparent; border:1px solid var(--border); color:var(--text-secondary); }
+        .btn-danger { background:var(--red-bg); color:var(--red); } .btn-success { background:var(--green-bg); color:var(--green); }
+        .btn-sm { padding:5px 12px; font-size:0.7rem; }
+        .empty-state { grid-column:1/-1; text-align:center; padding:60px 20px; color:var(--text-muted); }
+        .modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.4); z-index:200; display:flex; align-items:center; justify-content:center; animation:fadeIn 0.2s; padding:16px; }
+        @keyframes fadeIn { from{ opacity:0; } to{ opacity:1; } }
+        .modal { background:var(--bg-card); border-radius:var(--radius-lg); padding:28px 24px; width:100%; max-width:420px; border:1px solid var(--border); box-shadow:var(--shadow-lg); animation:slideUp 0.3s ease; }
+        @keyframes slideUp { from{ opacity:0; transform:translateY(16px); } to{ opacity:1; transform:translateY(0); } }
+        .modal h3 { font-weight:700; font-size:1.1rem; margin-bottom:18px; }
+        .form-group { margin-bottom:14px; } .form-group label { display:block; font-size:0.74rem; color:var(--text-secondary); margin-bottom:5px; }
+        .form-group input,.form-group select,.form-group textarea { width:100%; padding:10px 14px; background:var(--bg); border:1px solid var(--border); border-radius:10px; color:var(--text); font-size:0.88rem; outline:none; }
+        .form-group input:focus,.form-group select:focus,.form-group textarea:focus { border-color:var(--gold-light); }
+        .form-group select { appearance:none; background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b5e4a' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'%3E%3C/path%3E%3C/svg%3E"); background-repeat:no-repeat; background-position:right 12px center; padding-right:36px; cursor:pointer; }
+        .form-row { display:flex; gap:10px; } .form-row .form-group { flex:1; }
+        .btn-block { width:100%; padding:11px; border-radius:22px; font-size:0.88rem; }
+        .modal-hint { text-align:center; margin-top:14px; font-size:0.7rem; color:var(--text-muted); }
+        .toast-container { position:fixed; top:20px; right:20px; z-index:300; display:flex; flex-direction:column; gap:8px; pointer-events:none; }
+        .toast { background:var(--bg-card); border:1px solid var(--border); border-radius:10px; padding:12px 18px; font-size:0.78rem; box-shadow:var(--shadow-lg); animation:toastIn 0.3s ease, toastOut 0.3s 2.2s forwards; display:flex; align-items:center; gap:8px; }
+        @keyframes toastIn { from{ opacity:0; transform:translateX(30px); } to{ opacity:1; transform:translateX(0); } }
+        @keyframes toastOut { from{ opacity:1; } to{ opacity:0; transform:translateX(30px); } }
+        @media (max-width:700px) { .app { padding:12px 10px; } .nav { padding:10px 14px; } .order-grid { grid-template-columns:1fr; } }
+    </style>
+</head>
+<body>
+<div class="app">
+    <nav class="nav">
+        <div class="brand"><div class="brand-icon">🐱</div><span class="brand-name">瘦猫电竞</span></div>
+        <div class="nav-tabs" id="navTabs">
+            <button class="nav-tab active" data-view="hall">订单大厅</button>
+            <button class="nav-tab" data-view="my">我的接单</button>
+            <button class="nav-tab" id="tabPublish" data-view="publish" style="display:none;">发布订单</button>
+        </div>
+        <div class="nav-right">
+            <div class="conn-indicator"><span class="conn-dot"></span>实时</div>
+            <button class="user-btn" id="userBtn" onclick="openAuthModal()">
+                <span id="loginHint">点击登录</span>
+                <span id="userNameSpan" style="display:none;"></span>
+                <span id="roleDot" class="role-dot" style="display:none;"></span>
+                <div class="user-avatar" id="userAvatar">?</div>
+            </button>
+        </div>
+    </nav>
+    <div class="stats">
+        <div class="stat-card"><div class="stat-label">全部订单</div><div class="stat-value highlight" id="sTotal">0</div></div>
+        <div class="stat-card"><div class="stat-label">待接单</div><div class="stat-value" id="sPending" style="color:var(--orange);">0</div></div>
+        <div class="stat-card"><div class="stat-label">进行中</div><div class="stat-value" id="sDoing" style="color:var(--purple);">0</div></div>
+        <div class="stat-card"><div class="stat-label">已完成</div><div class="stat-value" id="sDone" style="color:var(--green);">0</div></div>
+        <div class="stat-card"><div class="stat-label">我的发布</div><div class="stat-value" id="mPub">-</div></div>
+        <div class="stat-card"><div class="stat-label">我的接单</div><div class="stat-value" id="mAcc">-</div></div>
+    </div>
+    <main id="mainContent"></main>
+</div>
+
+<!-- 登录弹窗 -->
+<div class="modal-overlay" id="authModal" style="display:none;">
+    <div class="modal">
+        <h3>🔐 登录 / 注册</h3>
+        <form onsubmit="handleAuth(event)">
+            <div class="form-group"><label>玩家昵称</label><input type="text" id="authNick" placeholder="输入昵称" required maxlength="20"></div>
+            <div class="form-group"><label>密码</label><input type="password" id="authPass" placeholder="密码（至少6位）" minlength="6" required></div>
+            <button type="submit" class="btn btn-primary btn-block">进入平台</button>
+        </form>
+        <div class="modal-hint">首次输入自动注册<br>管理员密码：<em style="color:#c0392b;">shoumnao888</em></div>
+        <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="closeAuthModal()">取消</button>
+    </div>
+</div>
+
+<!-- 发布弹窗 -->
+<div class="modal-overlay" id="publishModal" style="display:none;">
+    <div class="modal">
+        <h3>📋 发布新订单</h3>
+        <form onsubmit="handlePublish(event)">
+            <div class="form-row">
+                <div class="form-group"><label>类型</label><select id="pubType"><option value="rank">排位代打</option><option value="peak">巅峰赛</option><option value="hero">英雄战力</option><option value="play">陪玩娱乐</option></select></div>
+                <div class="form-group"><label>目标</label><select id="pubRank"><option value="青铜→白银">青铜→白银</option><option value="白银→黄金">白银→黄金</option><option value="黄金→铂金">黄金→铂金</option><option value="铂金→钻石">铂金→钻石</option><option value="钻石→星耀">钻石→星耀</option><option value="星耀→王者" selected>星耀→王者</option><option value="王者→荣耀">王者→荣耀</option></select></div>
+            </div>
+            <div class="form-row">
+                <div class="form-group"><label>价格 ¥</label><input type="number" id="pubPrice" placeholder="金额" min="10" required></div>
+                <div class="form-group"><label>位置</label><select id="pubPos"><option value="不限">不限</option><option value="对抗路">对抗路</option><option value="打野">打野</option><option value="中路">中路</option><option value="发育路">发育路</option><option value="游走">游走</option></select></div>
+            </div>
+            <div class="form-group"><label>备注</label><textarea id="pubNote" placeholder="补充说明..."></textarea></div>
+            <button type="submit" class="btn btn-accent btn-block">⚡ 立即发布</button>
+        </form>
+        <button class="btn btn-outline btn-block" style="margin-top:8px;" onclick="closePublishModal()">取消</button>
+    </div>
+</div>
+
+<div class="toast-container" id="toastContainer"></div>
+
+<script>
+    (() => {
+        // ==================== 🔑 在这里填入你的 Supabase 密钥 ====================
+        const SUPABASE_URL = 'https://lyyvwxckpwvvjzwlbxre.supabase.co'; // ← 替换为 Project URL
+        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imx5eXZ3eGNrcHd2dmp6d2xieHJlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2MjQ5ODAsImV4cCI6MjA5OTIwMDk4MH0.uSvvHh0TA--KgimVJjr3-N72gGBCuyRMjQp8XKEtiE0';                 // ← 替换为 anon key
+        const ADMIN_PASSWORD = 'shoumnao888';
+
+        // 其余代码保持不变...
+        let sb, currentPlayer, orders = [], realtimeChannel, currentView = 'hall', currentFilter = 'all';
+        const $ = s => document.querySelector(s);
+        const toast = (msg, type='info') => {
+            const c = $('#toastContainer'), t = document.createElement('div');
+            t.className = 'toast';
+            t.innerHTML = `<span class="toast-dot" style="background:${type==='ok'?'#3a7d5a':type==='warn'?'#c07830':'#3b6dad'}"></span>${msg}`;
+            c.appendChild(t); setTimeout(()=>t.remove(), 2600);
+        };
+        const nowISO = () => new Date().toISOString();
+        const uid = () => 'SC'+Date.now().toString(36).toUpperCase().slice(-6);
+        const hashPwd = p => CryptoJS.SHA256(p).toString();
+        const typeLabel = t => ({rank:'排位代打',peak:'巅峰赛',hero:'英雄战力',play:'陪玩娱乐'}[t]||t);
+        const statusLabel = s => ({pending:'待接',accepted:'已接',doing:'进行中',done:'已完成'}[s]||s);
+        const timeAgo = ts => { if(!ts) return ''; const d=Date.now()-new Date(ts).getTime(), s=Math.floor(d/1000); if(s<60) return '刚刚'; const m=Math.floor(s/60); if(m<60) return m+'分钟前'; const h=Math.floor(m/60); if(h<24) return h+'小时前'; return Math.floor(h/24)+'天前'; };
+
+        function initSB() {
+            if(SUPABASE_URL.includes('your-project-id')) { alert('请先配置 Supabase 密钥！'); return false; }
+            sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {realtime:{params:{eventsPerSecond:10}}});
+            return true;
+        }
+
+        window.openAuthModal = () => {
+            if(currentPlayer) { if(confirm(`退出登录？`)) { currentPlayer=null; localStorage.removeItem('sc_player'); updateUI(); renderView(); updateStats(); } return; }
+            $('#authModal').style.display='flex'; $('#authNick').value=''; $('#authPass').value='';
+        };
+        window.closeAuthModal = () => $('#authModal').style.display='none';
+        window.handleAuth = async (e) => {
+            e.preventDefault();
+            const nick = $('#authNick').value.trim(), pass = $('#authPass').value.trim();
+            if(!nick||pass.length<6) return toast('密码至少6位','warn');
+            const hashed = hashPwd(pass), role = (hashed === hashPwd(ADMIN_PASSWORD)) ? 'admin' : 'user';
+            const btn = e.target.querySelector('button'); btn.disabled=true;
+            try {
+                const {data:exist} = await sb.from('players').select('*').eq('nickname',nick).maybeSingle();
+                if(exist) { if(exist.password_hash!==hashed) throw new Error('密码错误'); if(exist.role!==role) await sb.from('players').update({role}).eq('nickname',nick); currentPlayer={nickname:exist.nickname,role}; }
+                else { await sb.from('players').insert({nickname:nick,password_hash:hashed,role}); currentPlayer={nickname:nick,role}; }
+                localStorage.setItem('sc_player',JSON.stringify(currentPlayer)); closeAuthModal(); updateUI(); await loadOrders(); renderView(); updateStats();
+                toast('欢迎！','ok');
+            } catch(err) { toast(err.message,'warn'); } finally { btn.disabled=false; }
+        };
+
+        async function loadOrders() { if(!sb) return; const {data} = await sb.from('orders').select('*').order('created_at',{ascending:false}); orders=data||[]; renderView(); updateStats(); }
+        function subRT() { if(!sb) return; if(realtimeChannel) sb.removeChannel(realtimeChannel); realtimeChannel = sb.channel('orders-rt').on('postgres_changes',{event:'*',schema:'public',table:'orders'},p=>{ const {eventType,new:n}=p; if(eventType==='INSERT'){ if(!orders.find(x=>x.id===n.id)){orders.unshift(n);toast('📢 新订单','ok');flashCard(n.id);} } else if(eventType==='UPDATE'){ const i=orders.findIndex(x=>x.id===n.id); if(i>=0) orders[i]=n; else orders.unshift(n); flashCard(n.id); } else if(eventType==='DELETE'){ orders=orders.filter(x=>x.id!==p.old.id); } renderView(); updateStats(); }).subscribe(); }
+        function flashCard(id){ setTimeout(()=>{ const c=document.querySelector(`.order-card[data-id="${id}"]`); if(c){c.classList.add('flash');setTimeout(()=>c.classList.remove('flash'),600);} },100); }
+
+        async function publishOrder(d){ if(!currentPlayer||currentPlayer.role!=='admin') return; const o={id:uid(),type:d.type,type_label:typeLabel(d.type),target_rank:d.targetRank,position:d.position||'不限',price:parseInt(d.price),status:'pending',publisher:currentPlayer.nickname,acceptor:null,note:d.note||'',created_at:nowISO(),updated_at:nowISO()}; await sb.from('orders').insert(o); }
+        async function acceptOrder(id){ const {data} = await sb.from('orders').update({status:'accepted',acceptor:currentPlayer.nickname,updated_at:nowISO()}).eq('id',id).eq('status','pending').select().single(); if(!data) toast('已被抢走','warn'); }
+        async function startOrder(id){ await sb.from('orders').update({status:'doing',updated_at:nowISO()}).eq('id',id).eq('acceptor',currentPlayer.nickname).eq('status','accepted'); }
+        async function completeOrder(id){ await sb.from('orders').update({status:'done',updated_at:nowISO()}).eq('id',id).eq('acceptor',currentPlayer.nickname).eq('status','doing'); }
+        async function cancelOrder(id){ await sb.from('orders').update({status:'cancelled',updated_at:nowISO()}).eq('id',id); }
+
+        function updateUI() {
+            const hint=$('#loginHint'), name=$('#userNameSpan'), dot=$('#roleDot'), av=$('#userAvatar'), pub=$('#tabPublish');
+            if(currentPlayer) { hint.style.display='none'; name.style.display=''; name.textContent=currentPlayer.nickname; dot.style.display=''; av.textContent=currentPlayer.nickname[0].toUpperCase();
+                if(currentPlayer.role==='admin'){ dot.className='role-dot admin-dot'; av.className='user-avatar admin-av'; pub.style.display=''; } else { dot.className='role-dot user-dot'; av.className='user-avatar'; pub.style.display='none'; } }
+            else { hint.style.display=''; name.style.display='none'; dot.style.display='none'; av.textContent='?'; av.className='user-avatar'; pub.style.display='none'; }
+        }
+        function updateStats() {
+            $('#sTotal').textContent = orders.filter(o=>o.status!=='cancelled').length;
+            $('#sPending').textContent = orders.filter(o=>o.status==='pending').length;
+            $('#sDoing').textContent = orders.filter(o=>o.status==='accepted'||o.status==='doing').length;
+            $('#sDone').textContent = orders.filter(o=>o.status==='done').length;
+            if(currentPlayer){ $('#mPub').textContent = orders.filter(o=>o.publisher===currentPlayer.nickname&&o.status!=='cancelled').length; $('#mAcc').textContent = orders.filter(o=>o.acceptor===currentPlayer.nickname).length; }
+            else { $('#mPub').textContent='-'; $('#mAcc').textContent='-'; }
+        }
+
+        function renderView() {
+            document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+            document.querySelector(`.nav-tab[data-view="${currentView}"]`)?.classList.add('active');
+            if(currentView==='hall') renderHall(); else if(currentView==='my') renderMy(); else if(currentView==='publish') openPublish();
+        }
+        function renderHall() {
+            let list = [...orders].filter(o=>o.status!=='cancelled');
+            if(currentFilter==='pending') list=list.filter(o=>o.status==='pending'); else if(currentFilter==='active') list=list.filter(o=>o.status==='accepted'||o.status==='doing'); else if(currentFilter==='done') list=list.filter(o=>o.status==='done');
+            list.sort((a,b)=>({pending:0,accepted:1,doing:2,done:3}[a.status]??9)-({pending:0,accepted:1,doing:2,done:3}[b.status]??9)||new Date(b.created_at)-new Date(a.created_at));
+            let html = `<div class="filters"><button class="filter-chip ${currentFilter==='all'?'active':''}" onclick="setFilter('all')">全部</button><button class="filter-chip ${currentFilter==='pending'?'active':''}" onclick="setFilter('pending')">待接单</button><button class="filter-chip ${currentFilter==='active'?'active':''}" onclick="setFilter('active')">进行中</button><button class="filter-chip ${currentFilter==='done'?'active':''}" onclick="setFilter('done')">已完成</button></div><div class="order-grid">`;
+            if(!list.length) html+='<div class="empty-state"><div class="empty-icon">📭</div><p>暂无订单</p></div>';
+            else list.forEach(o=> html+=orderCard(o));
+            html+='</div>'; $('#mainContent').innerHTML=html;
+            document.querySelectorAll('.order-card').forEach(card=>{ card.addEventListener('click',function(e){ if(e.target.closest('button')) return; const o=orders.find(x=>x.id===this.dataset.id); if(o?.status==='pending'&&currentPlayer?.role!=='admin'){ if(confirm('确认接单？')) acceptOrder(o.id); } }); });
+        }
+        function orderCard(o) {
+            const cls={pending:'status-pending',accepted:'status-accepted',doing:'status-doing',done:'status-done'}[o.status];
+            const tcls={rank:'badge-rank',peak:'badge-peak',hero:'badge-hero',play:'badge-play'}[o.type]||'';
+            let btn='';
+            if(o.status==='pending'&&currentPlayer?.role!=='admin'&&currentPlayer) btn=`<button class="btn btn-accent btn-sm" onclick="event.stopPropagation();acceptOrder('${o.id}')">抢单</button>`;
+            else if(o.status==='accepted'&&o.acceptor===currentPlayer?.nickname) btn=`<button class="btn btn-primary btn-sm" onclick="event.stopPropagation();startOrder('${o.id}')">开始打</button>`;
+            else if(o.status==='doing'&&o.acceptor===currentPlayer?.nickname) btn=`<button class="btn btn-success btn-sm" onclick="event.stopPropagation();completeOrder('${o.id}')">完成</button>`;
+            else if(o.status==='pending'&&currentPlayer?.role==='admin') btn=`<button class="btn btn-danger btn-sm" onclick="event.stopPropagation();cancelOrder('${o.id}')">取消</button>`;
+            return `<div class="order-card" data-id="${o.id}"><div class="card-top"><span class="badge-type ${tcls}">${o.type_label||''}</span><span class="badge-status ${cls}">${statusLabel(o.status)}</span></div><div class="card-title">${o.target_rank||''}</div><div class="card-meta"><span>📍 ${o.position||'不限'}</span><span>📋 ${o.id}</span>${o.acceptor?`<span>👤 ${o.acceptor}</span>`:''}</div>${o.note?`<div class="card-meta">💬 ${o.note}</div>`:''}<div class="card-price">¥ ${o.price}</div><div class="card-bottom"><span class="card-time">${timeAgo(o.created_at)}</span>${btn}</div></div>`;
+        }
+        function renderMy() {
+            if(!currentPlayer){ $('#mainContent').innerHTML='<div class="empty-state"><p>请先登录</p></div>'; return; }
+            const my=orders.filter(o=>o.publisher===currentPlayer.nickname||o.acceptor===currentPlayer.nickname);
+            my.sort((a,b)=>new Date(b.updated_at||b.created_at)-new Date(a.updated_at||a.created_at));
+            let html='<div class="order-grid">'; if(!my.length) html+='<div class="empty-state">暂无相关订单</div>'; else my.forEach(o=>html+=orderCard(o)); html+='</div>'; $('#mainContent').innerHTML=html;
+        }
+        window.setFilter = f => { currentFilter=f; renderHall(); };
+        window.openPublish = () => { if(!currentPlayer||currentPlayer.role!=='admin') return; $('#publishModal').style.display='flex'; };
+        window.closePublishModal = () => $('#publishModal').style.display='none';
+        window.handlePublish = async (e) => {
+            e.preventDefault();
+            const d={type:$('#pubType').value, targetRank:$('#pubRank').value, position:$('#pubPos').value, price:$('#pubPrice').value, note:$('#pubNote').value};
+            if(!d.price||d.price<1) return toast('请输入价格','warn');
+            await publishOrder(d); closePublishModal(); currentView='hall'; renderView();
+        };
+        window.acceptOrder = acceptOrder; window.startOrder = startOrder; window.completeOrder = completeOrder; window.cancelOrder = cancelOrder;
+
+        document.getElementById('navTabs').addEventListener('click',e=>{ const tab=e.target.closest('.nav-tab'); if(!tab) return; const v=tab.dataset.view; if(v==='publish'){ openPublish(); return; } currentView=v; currentFilter='all'; renderView(); });
+        document.getElementById('publishModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closePublishModal(); });
+        document.getElementById('authModal').addEventListener('click',e=>{ if(e.target===e.currentTarget) closeAuthModal(); });
+        document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ closePublishModal(); closeAuthModal(); } });
+
+        (async () => {
+            if(!initSB()) return;
+            const saved = localStorage.getItem('sc_player');
+            if(saved) try { currentPlayer = JSON.parse(saved); } catch { currentPlayer=null; }
+            updateUI(); await loadOrders(); subRT(); updateStats();
+        })();
+    })();
+</script>
+</body>
+</html>
